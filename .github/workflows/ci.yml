@@ -1,0 +1,86 @@
+name: Autocalificación Git
+
+on:
+  push:
+    branches:
+      - main
+      - recuerdos
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  check-lab:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Necesario para verificar historial completo
+
+      - name: Validar archivos requeridos
+        run: |
+          echo "== Validando archivos =="
+          
+          # Contador de puntos
+          SCORE=0
+          MAX_SCORE=10
+
+          # Validar que se completó la información del estudiante
+          if grep -q "\[Escribe tu nombre completo aquí\]" readme.md; then
+            echo "❌ No se completó la información personal en readme.md"
+          else
+            echo "✅ Información personal completada en readme.md"
+            SCORE=$((SCORE + 2))
+          fi
+
+          # Validar diario.txt existe
+          if [ ! -f diario.txt ]; then
+            echo "❌ No existe diario.txt"
+          else
+            echo "✅ diario.txt existe"
+            SCORE=$((SCORE + 2))
+          fi
+
+          # Validar contiene Día 1 y Día 2
+          if [ -f diario.txt ]; then
+            if grep -q "Día 1" diario.txt; then
+              echo "✅ Contiene Día 1"
+              SCORE=$((SCORE + 2))
+            else
+              echo "❌ Falta Día 1 en diario.txt"
+            fi
+            
+            if grep -q "Día 2" diario.txt; then
+              echo "✅ Contiene Día 2"
+              SCORE=$((SCORE + 2))
+            else
+              echo "❌ Falta Día 2 en diario.txt"
+            fi
+          fi
+
+          # Validar recuerdos.txt existe en main
+          if [ ! -f recuerdos.txt ]; then
+            echo "❌ No existe recuerdos.txt (¿hiciste el merge?)"
+          else
+            echo "✅ recuerdos.txt existe"
+            
+            # Validar contiene la frase esperada
+            if grep -q "Recuerdo:" recuerdos.txt; then
+              echo "✅ recuerdos.txt tiene el contenido correcto"
+              SCORE=$((SCORE + 2))
+            else
+              echo "❌ Falta texto correcto en recuerdos.txt"
+            fi
+          fi
+
+          echo "== RESULTADO FINAL =="
+          echo "Puntuación: $SCORE/$MAX_SCORE"
+          
+          if [ $SCORE -eq $MAX_SCORE ]; then
+            echo "🎉 ¡Laboratorio completado exitosamente!"
+            exit 0
+          else
+            echo "❌ Laboratorio incompleto. Revisa los errores arriba."
+            exit 1
+          fi
